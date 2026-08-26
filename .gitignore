@@ -22,3 +22,18 @@ npm-debug.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local logs & tooling artifacts
+.logs/
+.freebuff/
+*.log
+
+# Machine-specific build artifacts
+server/*player-script.js
+
+# AI tool artifacts
+.agents/
+.claude/
+.windsurf/
+.cursor/
+skills-lock.json
