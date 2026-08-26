@@ -1,0 +1,5 @@
+kokoro>=0.7.16
+fastapi>=0.115.0
+uvicorn>=0.32.0
+soundfile>=0.12.1
+torch>=2.0.0

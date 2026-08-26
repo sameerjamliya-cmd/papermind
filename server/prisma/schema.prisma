@@ -1,0 +1,356 @@
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+model User {
+  id               String            @id
+  name             String
+  email            String
+  emailVerified    Boolean           @default(false)
+  image            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  sessions         Session[]
+  accounts         Account[]
+  workspaces       Workspace[]
+  sources          Source[]
+  messages         Message[]
+  knowledgeResources KnowledgeResource[]
+  sharedWorkspaces SharedWorkspace[]
+  collections      Collection[]
+  audioOverviews   AudioOverview[]
+  quizzes          Quiz[]
+  flashcardSets    FlashcardSet[]
+  infographics     Infographic[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model Workspace {
+  id               String            @id @default(uuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?
+  icon             String?
+  isFavorite       Boolean           @default(false)
+  chatModel        String            @default("gpt-4o-mini")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  sources          Source[]
+  messages         Message[]
+  knowledgeResources KnowledgeResource[]
+  sharedWith       SharedWorkspace[]
+  audioOverviews   AudioOverview[]
+  quizzes          Quiz[]
+  flashcardSets    FlashcardSet[]
+  infographics     Infographic[]
+
+  @@index([userId])
+  @@index([userId, isFavorite])
+  @@map("workspace")
+}
+
+model SharedWorkspace {
+  id            String   @id @default(uuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sharedWithId  String
+  sharedWith    User     @relation(fields: [sharedWithId], references: [id], onDelete: Cascade)
+  permission    String   @default("read")
+  createdAt     DateTime @default(now())
+
+  @@unique([workspaceId, sharedWithId])
+  @@index([sharedWithId])
+  @@map("shared_workspace")
+}
+
+model Collection {
+  id          String             @id @default(uuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  icon        String?
+  order       Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  sources     SourceCollection[]
+
+  @@index([userId])
+  @@map("collection")
+}
+
+model SourceCollection {
+  sourceId     String
+  source       Source     @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([sourceId, collectionId])
+  @@map("source_collection")
+}
+
+model Source {
+  id           String            @id @default(uuid())
+  workspaceId  String
+  workspace    Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String
+  status       String            @default("pending")
+  title        String
+  url          String?
+  content      String?
+  fileUrl      String?
+  metadata     Json?
+  errorMessage String?
+  chunkCount   Int?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  chunks       Chunk[]
+  collections  SourceCollection[]
+
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([workspaceId, type])
+  @@index([workspaceId, status])
+  @@map("source")
+}
+
+model KnowledgeResource {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String
+  status       String   @default("uploaded")
+  title        String
+  originalUrl  String
+  publicId     String
+  metadata     Json?
+  errorMessage String?
+  chunkCount   Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  chunks       KnowledgeResourceChunk[]
+
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([workspaceId, status])
+  @@map("knowledge_resource")
+}
+
+model KnowledgeResourceChunk {
+  id            String   @id @default(uuid())
+  resourceId    String
+  knowledgeResource KnowledgeResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  workspaceId   String
+  index         Int
+  text          String
+  embedding     String?
+  createdAt     DateTime @default(now())
+
+  @@index([resourceId])
+  @@index([workspaceId])
+  @@map("knowledge_resource_chunk")
+}
+
+model Chunk {
+  id          String           @id @default(uuid())
+  sourceId    String
+  source      Source           @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  workspaceId String
+  index       Int
+  text        String
+  embedding   String?
+  pageNumber  Int?
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+
+  @@index([sourceId])
+  @@index([workspaceId])
+  @@map("chunk")
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        String
+  content     String
+  citations   Json?
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId])
+  @@map("message")
+}
+
+model MemorySync {
+  id                    String   @id @default(uuid())
+  userId                String
+  workspaceId           String
+  lastSyncedMessageId   String?
+  messageCountSinceSync Int      @default(0)
+  lastSyncedAt          DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([userId, workspaceId])
+  @@index([userId])
+  @@index([workspaceId])
+  @@map("memory_sync")
+}
+
+model AudioOverview {
+  id                  String         @id @default(uuid())
+  workspaceId         String
+  workspace           Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId              String
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title               String
+  status              String         @default("generating")
+  audioUrl            String?
+  duration            Int?
+  estimatedDuration   Int?
+  errorMessage        String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  segments            AudioSegment[]
+
+  @@index([workspaceId])
+  @@map("audio_overview")
+}
+
+model AudioSegment {
+  id              String        @id @default(uuid())
+  audioOverviewId String
+  overview        AudioOverview @relation(fields: [audioOverviewId], references: [id], onDelete: Cascade)
+  order           Int
+  speaker         String
+  text            String
+  startTime       Float
+  endTime         Float
+  topic           String?
+  sourceRefs      Json?
+  createdAt       DateTime      @default(now())
+
+  @@index([audioOverviewId])
+  @@index([audioOverviewId, order])
+  @@map("audio_segment")
+}
+
+model Quiz {
+  id          String   @id @default(uuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      String   @default("generating")
+  config      Json
+  questions   Json?
+  errorMessage String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([workspaceId, status])
+  @@map("quiz")
+}
+
+model FlashcardSet {
+  id          String   @id @default(uuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      String   @default("generating")
+  config      Json
+  cards       Json?
+  errorMessage String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([workspaceId, status])
+  @@map("flashcard_set")
+}
+
+model Infographic {
+  id              String   @id @default(uuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          String   @default("generating")
+  config          Json
+  content         Json?
+  language        String   @default("en")
+  plannerVersion  Int      @default(1)
+  rendererVersion Int      @default(1)
+  cacheKey        String
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([workspaceId, status])
+  @@unique([workspaceId, cacheKey])
+  @@map("infographic")
+}
