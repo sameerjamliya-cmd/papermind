@@ -16,6 +16,7 @@ A NotebookLM clone for AI-powered document research, Q&A, and content generation
 | Web Scraping | Firecrawl |
 | Web Search | Tavily |
 | Background Jobs | Inngest |
+| Long-term Memory | Mem0 |
 | Frontend | Next.js (App Router) |
 | UI | shadcn/ui |
 | Server State | TanStack Query |
@@ -32,6 +33,7 @@ papermind/
 │   │   ├── config/env.ts      # env vars & constants
 │   │   ├── db/prisma/         # schema + migrations
 │   │   ├── lib/               # auth, pinecone, cloudinary, firecrawl, tavily, openai, inngest
+│   │   ├── ai/                # ingestion, chat pipeline, memory, generation
 │   │   ├── middleware/        # auth, error
 │   │   ├── services/          # ingestion, chunking, embedding, rag, generation
 │   │   ├── routes/            # auth, notebooks, sources, chat, generation, notes
@@ -85,6 +87,13 @@ papermind/
 2. Prompt-templated OpenAI completion
 3. Return structured output (summary, FAQ, study guide, timeline, briefing doc)
 
+### Conversation Memory Sync
+1. Chat controller counts messages since last sync (`MemorySync` table)
+2. When threshold is reached, send `conversation.memory.sync` Inngest event
+3. Inngest function fetches unsynced messages, summarizes them into a learning profile
+4. Store the formatted memory in Mem0 keyed by `user_id`
+5. Chat pipeline retrieves the latest memory and injects it into the system prompt
+
 ## Setup
 
 ```bash
@@ -101,3 +110,8 @@ cd client && npm install && npm run dev
 ## Environment Variables
 
 See `.env.example` for all required environment variables.
+
+Key server variables for memory:
+- `MEM0_API_KEY`
+- `MEMORY_SYNC_MESSAGE_THRESHOLD` (default: 10)
+- `MEMORY_SUMMARY_MESSAGE_WINDOW` (default: 20)
