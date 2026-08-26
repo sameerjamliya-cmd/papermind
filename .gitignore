@@ -23,6 +23,10 @@ npm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Python
+__pycache__/
+*.pyc
+
 # Local logs & tooling artifacts
 .logs/
 .freebuff/

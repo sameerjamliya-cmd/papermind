@@ -13,6 +13,8 @@ import {
 } from "../../domain/primitives/brand";
 import { MessageRole } from "../../domain/enums/message-role";
 import { messageRepository } from "../../repository/message.repository";
+import { workspaceRepository } from "../../repository/workspace.repository";
+import { NotFoundError, ForbiddenError } from "../../types/app-error";
 import { PrismaMemorySyncRepository } from "../../infrastructure/persistence/prisma-memory-sync-repository";
 import { inngest } from "../../inngest/client";
 import { getEnv } from "../../config/env";
@@ -21,12 +23,20 @@ import {
   type ChatEvent,
 } from "../chat/types/chat-events";
 
+async function assertOwnedWorkspace(workspaceId: string, userId: string) {
+  const workspace = await workspaceRepository.findById(workspaceId);
+  if (!workspace) throw new NotFoundError("Workspace not found");
+  if (workspace.userId !== userId) throw new ForbiddenError();
+}
+
 export function createChatController(chatPipeline: ChatPipeline) {
   return {
     send: asyncHandler(async (req: Request, res: Response) => {
       const userId = req.user!.id;
       const { workspaceId } = workspaceIdParamSchema.parse(req.params);
       const { message, enableWebSearch } = sendMessageSchema.parse(req.body);
+
+      await assertOwnedWorkspace(workspaceId, userId);
 
       res.setHeader("Content-Type", "application/x-ndjson");
       res.setHeader("Transfer-Encoding", "chunked");
@@ -84,6 +94,8 @@ export function createChatController(chatPipeline: ChatPipeline) {
       const userId = req.user!.id;
       const { workspaceId } = workspaceIdParamSchema.parse(req.params);
       const { limit } = messagesQuerySchema.parse(req.query);
+
+      await assertOwnedWorkspace(workspaceId, userId);
 
       const messages = await messageRepository.findByWorkspace(
         workspaceId,

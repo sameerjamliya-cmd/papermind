@@ -8,6 +8,7 @@ import { randomUUID } from "crypto";
 const execAsync = promisify(exec);
 
 const TTS_URL = process.env.KOKORO_TTS_URL || "http://127.0.0.1:8001";
+const TTS_API_KEY = process.env.KOKORO_TTS_API_KEY;
 
 const VOICE_MAP = {
   host_a: { voice: "af_heart", speed: 1.05 },
@@ -63,7 +64,8 @@ async function synthesizeSegment(
       });
       const res = await fetch(`${TTS_URL}/tts?${params}`, {
         method: "POST",
-        signal: AbortSignal.timeout(30000),
+        headers: TTS_API_KEY ? { "X-API-Key": TTS_API_KEY } : undefined,
+        signal: AbortSignal.timeout(60000),
       });
 
       if (!res.ok) {
