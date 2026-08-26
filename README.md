@@ -1,11 +1,10 @@
 # Papermind
 
-Papermind is a NotebookLM-style AI research and study workspace. You drop in
-documents, websites, YouTube links, or your own notes, and Papermind ingests
-them into a per-workspace knowledge base you can chat with, quiz yourself on,
-and turn into flashcards, infographics, and narrated audio overviews — all
-grounded in your sources, with citations back to the exact passage an answer
-came from.
+Papermind is an AI research and study workspace. You drop in documents,
+websites, YouTube links, or your own notes, and Papermind ingests them into a
+per-workspace knowledge base you can chat with, quiz yourself on, and turn
+into flashcards, infographics, and narrated audio overviews — all grounded in
+your sources, with citations back to the exact passage an answer came from.
 
 ## What it does
 
